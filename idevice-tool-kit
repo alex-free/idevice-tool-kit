@@ -113,7 +113,7 @@ startup() {
 }
 
 generate_boot_script(){
-    boot_script=boot-$device-$ver-$serial
+    boot_script=boot_"$device"_"$ver"_"$serial"
 
     # Delete any existing boot* scripts for this serial number.
     rm -f *-$serial
