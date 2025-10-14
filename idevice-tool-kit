@@ -538,10 +538,7 @@ retry_pwn() {
     turdursra1n_pwn
 }
 
-restore_ipsw() {
-    enter_recovery
-    enforce_recovery
-
+get_ver() {
     # If given URL, using a999activator setup with hardcoded URLs.
     if [[ "$1" == http://* || "$1" == https://* ]]; then
         mkdir -p data/ipsw
@@ -562,6 +559,13 @@ restore_ipsw() {
 
     # Get ver and build number, i.e. 9.2_13D20 for possible iPhone 6S downgrade (even though we can't use 13D20 or any 'new' iOS 9.2.1 for other devices because jbme does not work)... Build number is important for iPhone 6S and iPhone 6S Plus which have 2 different iOS 9.2.1 versions available for restore.
     ver=$(echo "$ipsw_file" | sed -E 's/.*_(.*_.*)_Restore\.ipsw/\1/')
+}
+
+restore_ipsw() {
+    enter_recovery
+    enforce_recovery
+
+    get_ver "$1"
 
     echo "Restoring iOS $ver with $ipsw_file.."
 
@@ -647,6 +651,9 @@ restore_ios_10_2_1_for_device() {
 }
 
 check_if_additional_restore_is_needed() {
+
+    get_ver "$1"
+
     if [ "$ver" = "10.0.1_14A403" ] || \
     [ "$ver" = "10.0.2_14A456" ] || \
     [ "$ver" = "10.0.3_14A551" ] || \
