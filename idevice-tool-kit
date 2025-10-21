@@ -13,6 +13,12 @@ restore_signed_ios=false
 # Need to do more steps for final restore.
 not_final_restore=true
 
+usbmuxd_restart() {
+    # Restart in normal non-pulling mode daemonized.
+    killall usbmuxd > /dev/null 2>&1
+    usbmuxd > /dev/null 2>&1
+}
+
 update_existing_data() {
     if [ -d "$1"/data ]; then
         echo "Found existing data folder!"
@@ -157,7 +163,7 @@ if [ "$os" = "Linux" ]; then
         exit 1
     fi
 
-    usbmuxd_reset > /dev/null 2>&1
+    usbmuxd_restart_polling > /dev/null 2>&1
 fi
 
 # Can not trust return values of turdusra1n because at least my 128GB TSMC 6S Plus reboots to recovery very occasionally. This has never happened on my 32GB TSMC 6S Plus.
@@ -172,6 +178,9 @@ while irecovery -m 2>/dev/null | grep -q "Recovery Mode"; do
     sleep 20
 done
 
+# Restart in normal non-pulling mode daemonized.
+killall usbmuxd > /dev/null 2>&1
+usbmuxd
 echo "Done!"
 
 ' > $boot_script
@@ -217,7 +226,7 @@ if [ "$os" = "Linux" ]; then
         exit 1
     fi
 
-    usbmuxd_reset > /dev/null 2>&1
+    usbmuxd_restart_polling > /dev/null 2>&1
 fi
 
 # Can not trust return values of turdusra1n because at least my 128GB TSMC 6S Plus reboots to recovery very occasionally. This has never happened on my 32GB TSMC 6S Plus.
@@ -231,6 +240,9 @@ while irecovery -m 2>/dev/null | grep -q "Recovery Mode"; do
     sleep 20
 done
 
+# Restart in normal non-pulling mode daemonized.
+killall usbmuxd > /dev/null 2>&1
+usbmuxd
 echo "Done!"
 
 ' > $boot_script
@@ -244,32 +256,13 @@ echo "Done!"
 }
 
 pair_iphone(){
-    idevicepair unpair >/dev/null 2>&1     
     idevicepair pair >/dev/null 2>&1
 }
 
-restore_signed_ios_for_device() {
-    if [ $device == "iphone_6s_plus" ]; then
-        restore_ipsw https://updates.cdn-apple.com/2025FallFCS/fullrestores/082-67213/C471E1B8-CB73-4E02-8A9E-39166CD4FD28/iPhone_5.5_15.8.5_19H394_Restore.ipsw
-    elif [ $device == "iphone_6s" ]; then
-        restore_ipsw https://updates.cdn-apple.com/2025FallFCS/fullrestores/082-67136/AC6F1095-935D-4892-9D11-84BE311843B4/iPhone_4.7_15.8.5_19H394_Restore.ipsw
-    elif [ $device == "iphone_se" ]; then
-        restore_ipsw https://updates.cdn-apple.com/2025FallFCS/fullrestores/082-66999/ECD8F46B-AF4B-454F-B6A4-55FEA09A10F9/iPhone_4.0_64bit_15.8.5_19H394_Restore.ipsw
-    fi
-    
-    # Clean up.
-    restore_signed_ios=false
-
-    wait_for_normal_mode
-    echo "iOS 15.8.5 has been restored! It will take some additional time for it to start up into Setup.app, please wait..."
- 
-    did_you_follow_instructions
-}
-
 detect_iphone() {
-    # Fresh USB connection.
+    # Start usbmuxd in foreground using polling option.
     if [ "$os" = "Linux" ]; then
-        usbmuxd_reset > /dev/null 2>&1
+        usbmuxd_restart_polling > /dev/null 2>&1
     fi
 
     echo "Searching for an iPhone connected to this computer with a USB-A Lightning cable. Please wait..."
@@ -373,7 +366,7 @@ detect_iphone() {
                 break
 
             else
-                echo "Error: could not find a supported iPhone. If you have a supported iPhone, make sure it is connected with a Lightning to USB-A cable to this computer and try again."
+                echo "Error: could not find a supported iPhone. If you have a supported iPhone, make sure it is connected with a Lightning to USB-A cable to this computer and try again. If it is in Normal mode, it needs to be trusted to this computer to be detected."
                 exit 1
             fi
 
@@ -443,7 +436,7 @@ wait_for_normal_mode() {
     echo "Waiting for iPhone to boot into Normal Mode..."
 
     while ! ideviceinfo 2>/dev/null; do
-       # Ensure we are paired, fixes issues when booting iOS 9.
+       # Ensure we are paired.
         pair_iphone
         sleep 1
     done
@@ -590,17 +583,6 @@ restore_ipsw() {
         while ! echo 1 | turdus_merula -C data/"$device"_"$serial"/$ver -o $ipsw_file; do
             retry_pwn
         done
-    fi
-}
-
-restore_ios_10_2_1_for_device() {
-    # Needed for iOS 9.x
-    if [ $device == "iphone_6s_plus" ]; then
-        restore_ipsw http://appldnld.apple.com/ios10.2.1/031-96800-20170112-6151CD56-D81D-11E6-A447-F501D55B5B9D/iPhone_5.5_10.2.1_14D27_Restore.ipsw
-    elif [ $device == "iphone_6s" ]; then
-        restore_ipsw http://appldnld.apple.com/ios10.2.1/031-96803-20170112-6151BFBE-D81D-11E6-8553-F701D55B5B9D/iPhone_4.7_10.2.1_14D27_Restore.ipsw
-    elif [ $device == "iphone_se" ]; then
-        restore_ipsw http://appldnld.apple.com/ios10.2.1/031-96769-20170112-61558B4E-D81D-11E6-9610-F301D55B5B9D/iPhoneSE_10.2.1_14D27_Restore.ipsw
     fi
 }
 
