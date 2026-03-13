@@ -88,6 +88,10 @@ startup() {
             if command -v dnf >/dev/null; then
                 # More deps.
                 dnf install -y libimobiledevice libimobiledevice-utils expect idevicerestore irecovery
+                # Crypto libraries for lockdown.
+                update-crypto-policies --set LEGACY > /dev/null 2>&1
+                echo "Fedora users may need to reboot now before running a999 again! If it doesn't work, reboot and try again."
+
             elif command -v apt >/dev/null; then
                 apt install --yes expect libimobiledevice libimobiledevice-utils expect idevicerestore irecovery
             fi
@@ -102,10 +106,9 @@ startup() {
         if command -v dnf >/dev/null; then
             # Crypto libraries for lockdown.
             update-crypto-policies --set LEGACY > /dev/null 2>&1
-            # Crypto policies usually require a reboot to take effect.
+            # Crypto policies usually require a reboot to take effect but let's just be thorough here...
             # Set SE linux to permissive (resets on Reboot)
             setenforce 0
-            # Deps.
         fi
     elif [ "$os" = "Darwin" ]; then
         # All these executables are signed so that is the only think preventing gatekeeper from allowing the script to be automatic is the quarintine attributes.
